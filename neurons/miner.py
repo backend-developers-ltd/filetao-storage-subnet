@@ -320,9 +320,7 @@ class miner:
             total_size += size
         return total_size
 
-    def store_blacklist_fn(
-        self, synapse: storage.protocol.Store
-    ) -> typing.Tuple[bool, str]:
+    def base_blacklist_fn(self, synapse: storage.protocol.Synapse) -> typing.Tuple[bool, str]:
         """
         Determines whether a given synapse should be blacklisted based on the recognition
         of the hotkey in the metagraph. This function is used to filter out requests from
@@ -375,7 +373,7 @@ class miner:
         bt.logging.trace(f"Not Blacklisting recognized hotkey {caller}")
         return False, "Hotkey recognized!"
 
-    def store_priority_fn(self, synapse: storage.protocol.Store) -> float:
+    def base_priority_fn(self, synapse: storage.protocol.Synapse) -> float:
         """
         Assigns a priority to a given synapse based on the stake of the calling entity
         in the metagraph. This function is crucial for prioritizing network requests
@@ -399,187 +397,37 @@ class miner:
         caller_uid = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
-        prirority = float(
+        priority = float(
             self.metagraph.S[caller_uid]
         )  # Return the stake as the priority.
         bt.logging.trace(
-            f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
+            f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority
         )
-        return prirority
+        return priority
+
+    def store_blacklist_fn(
+        self, synapse: storage.protocol.Store
+    ) -> typing.Tuple[bool, str]:
+        return self.base_blacklist_fn(synapse)
+
+    def store_priority_fn(self, synapse: storage.protocol.Store) -> float:
+        return self.base_priority_fn(synapse)
 
     def challenge_blacklist_fn(
         self, synapse: storage.protocol.Challenge
     ) -> typing.Tuple[bool, str]:
-        """
-        Determines whether a given synapse should be blacklisted based on the recognition
-        of the hotkey in the metagraph. This function is used to filter out requests from
-        entities that are not part of the network's current state.
-
-        Parameters:
-        - synapse (bt.Synapse): The synapse object which contains the dendrite information
-        including the hotkey.
-
-        Returns:
-        - (bool, str): A tuple where the first element is a boolean indicating whether the
-        synapse's hotkey is blacklisted, and the second element is a string message explaining
-        the reason.
-
-        If the hotkey is not recognized in the metagraph, the synapse is blacklisted, and
-        the function returns (True, "Unrecognized hotkey"). Otherwise, it returns (False,
-        "Hotkey recognized!"), allowing the synapse to interact with the network.
-
-        Usage:
-        This method is internally used by the network to ensure that only recognized
-        entities can participate in communication or transactions.
-        """
-        try:
-            self.request_log = log_request(synapse, self.request_log)
-        except Exception as e:
-            bt.logging.error(f"Error logging request: {e}")
-
-        caller = synapse.dendrite.hotkey
-        if caller in self.config.blacklist.blacklist_hotkeys:
-            return True, f"Hotkey {caller} in blacklist."
-        elif caller in self.config.blacklist.whitelist_hotkeys:
-            return False, f"Hotkey {caller} in whitelist."
-
-        if caller not in self.rate_limiters:
-            self.rate_limiters[caller] = RateLimiter(
-                self.config.miner.max_requests_per_window,
-                self.config.miner.rate_limit_window,
-            )
-
-        if not self.rate_limiters[caller].is_allowed(caller):
-            window = self.config.miner.max_requests_per_window
-            blocks = self.config.miner.rate_limit_window
-            reason = f"Caller {caller} rate limited. Exceeded {window} requests in {blocks} blocks."
-            return True, reason
-
-        if caller not in self.metagraph.hotkeys:
-            bt.logging.trace(f"Blacklisting unrecognized hotkey {caller}")
-            return True, "Unrecognized hotkey"
-
-        bt.logging.trace(f"Not Blacklisting recognized hotkey {caller}")
-        return False, "Hotkey recognized!"
+        return self.base_blacklist_fn(synapse)
 
     def challenge_priority_fn(self, synapse: storage.protocol.Challenge) -> float:
-        """
-        Assigns a priority to a given synapse based on the stake of the calling entity
-        in the metagraph. This function is crucial for prioritizing network requests
-        and ensuring that higher-stake entities are given precedence in processing.
-
-        Parameters:
-        - synapse (bt.Synapse): The synapse object which contains the dendrite information
-        including the hotkey of the caller.
-
-        Returns:
-        - float: The priority value assigned to the synapse, derived from the stake of
-        the calling hotkey in the metagraph.
-
-        The priority is determined by the stake associated with the caller's UID in the
-        metagraph. A higher stake results in a higher priority.
-
-        Usage:
-        This method is used within the network's request handling mechanism to allocate
-        resources and processing time based on the stake-based priority of each request.
-        """
-        caller_uid = self.metagraph.hotkeys.index(
-            synapse.dendrite.hotkey
-        )  # Get the caller index.
-        prirority = float(
-            self.metagraph.S[caller_uid]
-        )  # Return the stake as the priority.
-        bt.logging.trace(
-            f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
-        )
-        return prirority
+        return self.base_priority_fn(synapse)
 
     def retrieve_blacklist_fn(
         self, synapse: storage.protocol.Retrieve
     ) -> typing.Tuple[bool, str]:
-        """
-        Determines whether a given synapse should be blacklisted based on the recognition
-        of the hotkey in the metagraph. This function is used to filter out requests from
-        entities that are not part of the network's current state.
-
-        Parameters:
-        - synapse (bt.Synapse): The synapse object which contains the dendrite information
-        including the hotkey.
-
-        Returns:
-        - (bool, str): A tuple where the first element is a boolean indicating whether the
-        synapse's hotkey is blacklisted, and the second element is a string message explaining
-        the reason.
-
-        If the hotkey is not recognized in the metagraph, the synapse is blacklisted, and
-        the function returns (True, "Unrecognized hotkey"). Otherwise, it returns (False,
-        "Hotkey recognized!"), allowing the synapse to interact with the network.
-
-        Usage:
-        This method is internally used by the network to ensure that only recognized
-        entities can participate in communication or transactions.
-        """
-        try:
-            self.request_log = log_request(synapse, self.request_log)
-        except Exception as e:
-            bt.logging.error(f"Error logging request: {e}")
-
-        caller = synapse.dendrite.hotkey
-        if caller in self.config.blacklist.blacklist_hotkeys:
-            return True, f"Hotkey {caller} in blacklist."
-        elif caller in self.config.blacklist.whitelist_hotkeys:
-            return False, f"Hotkey {caller} in whitelist."
-
-        if caller not in self.rate_limiters:
-            self.rate_limiters[caller] = RateLimiter(
-                self.config.miner.max_requests_per_window,
-                self.config.miner.rate_limit_window,
-            )
-
-        if not self.rate_limiters[caller].is_allowed(caller):
-            window = self.config.miner.max_requests_per_window
-            blocks = self.config.miner.rate_limit_window
-            reason = f"Caller {caller} rate limited. Exceeded {window} requests in {blocks} blocks."
-            return True, reason
-
-        if caller not in self.metagraph.hotkeys:
-            bt.logging.trace(f"Blacklisting unrecognized hotkey {caller}")
-            return True, "Unrecognized hotkey"
-
-        bt.logging.trace(f"Not Blacklisting recognized hotkey {caller}")
-        return False, "Hotkey recognized!"
+        return self.base_blacklist_fn(synapse)
 
     def retrieve_priority_fn(self, synapse: storage.protocol.Retrieve) -> float:
-        """
-        Assigns a priority to a given synapse based on the stake of the calling entity
-        in the metagraph. This function is crucial for prioritizing network requests
-        and ensuring that higher-stake entities are given precedence in processing.
-
-        Parameters:
-        - synapse (bt.Synapse): The synapse object which contains the dendrite information
-        including the hotkey of the caller.
-
-        Returns:
-        - float: The priority value assigned to the synapse, derived from the stake of
-        the calling hotkey in the metagraph.
-
-        The priority is determined by the stake associated with the caller's UID in the
-        metagraph. A higher stake results in a higher priority.
-
-        Usage:
-        This method is used within the network's request handling mechanism to allocate
-        resources and processing time based on the stake-based priority of each request.
-        """
-        caller_uid = self.metagraph.hotkeys.index(
-            synapse.dendrite.hotkey
-        )  # Get the caller index.
-        prirority = float(
-            self.metagraph.S[caller_uid]
-        )  # Return the stake as the priority.
-        bt.logging.trace(
-            f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
-        )
-        return prirority
+        return self.base_priority_fn(synapse)
 
     async def store(self, synapse: storage.protocol.Store) -> storage.protocol.Store:
         """
