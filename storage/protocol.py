@@ -21,8 +21,48 @@ import pydantic
 import bittensor as bt
 
 
+_UNSET = object()
+
+
+class ShortReprMixin:
+    SHORT_REPR_FIELDS: typing.ClassVar[typing.Set[str]] = set()
+
+    def __repr_args__(self, short: bool = False):
+        repr_args = []
+        for key, value in super().__repr_args__():
+            if short and value == self._get_field_default(key):
+                continue
+            if key in self.SHORT_REPR_FIELDS:
+                value_repr = str(value)
+                if len(value_repr) > 12:
+                    value = value_repr[:12] + "…"
+            repr_args.append((key, value))
+        return repr_args
+
+    def _get_field_default(self, field_name: str):
+        return getattr(self.__class__.__fields__.get(field_name), "default", _UNSET)
+
+    def __repr_str__(self, sep=", ", short: bool = False):
+        return sep.join(
+            f"{key}={value!r}" for key, value in self.__repr_args__(short=short)
+        )
+
+    def __str__(self):
+        return f'{self.__repr_name__()}({self.__repr_str__(", ", short=True)})'
+
+
+class FileTaoSynapseMixin(ShortReprMixin):
+    def __repr_args__(self, short: bool = False):
+        repr_args = super().__repr_args__(short=short)
+        for field in ("dendrite", "axon"):
+            value = getattr(self, field)
+            if value != self._get_field_default(field):
+                repr_args.insert(0, (field, value.dict()))
+        return repr_args
+
+
 # Basically setup for a given piece of data
-class Store(bt.Synapse):
+class Store(FileTaoSynapseMixin, bt.Synapse):
     # Data to store
     encrypted_data: str  # base64 encoded string of encrypted data (bytes)
 
@@ -58,22 +98,19 @@ class Store(bt.Synapse):
         allow_mutation=False,
     )
 
-    def __str__(self):
-        return (
-            f"Store(encrypted_data={self.encrypted_data[:12]}, "
-            f"curve={self.curve}, "
-            f"g={self.g}, "
-            f"h={self.h}, "
-            f"seed={str(self.seed)[:12]}, "
-            f"randomness={str(self.randomness)[:12]}, "
-            f"commitment={str(self.commitment)[:12]}, "
-            f"commitment_hash={str(self.commitment_hash)[:12]})"
-            f"axon={self.axon.dict()}, "
-            f"dendrite={self.dendrite.dict()}"
-        )
+    SHORT_REPR_FIELDS: typing.ClassVar[typing.Set[str]] = {
+        "encrypted_data",
+        "curve",
+        "g",
+        "h",
+        "seed",
+        "randomness",
+        "commitment",
+        "commitment_hash",
+    }
 
 
-class StoreUser(bt.Synapse):
+class StoreUser(FileTaoSynapseMixin, bt.Synapse):
     # Data to store
     encrypted_data: str  # base64 encoded string of encrypted data (bytes)
     encryption_payload: str  # encrypted json serialized bytestring of encryption params
@@ -88,8 +125,14 @@ class StoreUser(bt.Synapse):
         allow_mutation=False,
     )
 
+    SHORT_REPR_FIELDS: typing.ClassVar[typing.Set[str]] = {
+        "data_hash",
+        "encrypted_data",
+        "encryption_payload",
+    }
 
-class Challenge(bt.Synapse):
+
+class Challenge(FileTaoSynapseMixin, bt.Synapse):
     # Query parameters
     challenge_hash: str  # hash of the data to challenge
     challenge_index: int  # block indices to challenge
@@ -134,28 +177,25 @@ class Challenge(bt.Synapse):
         allow_mutation=False,
     )
 
-    def __str__(self):
-        return (
-            f"Challenge(challenge_hash={str(self.challenge_hash[:12])}, "
-            f"challenge_index={self.challenge_index}, "
-            f"chunk_size={self.chunk_size}, "
-            f"g={self.g}, "
-            f"h={self.h}, "
-            f"curve={self.curve}, "
-            f"seed={str(self.seed[:12])}, "
-            f"commitment_hash={str(self.commitment_hash[:12])}, "
-            f"commitment_proof={str(self.commitment_proof[:12])}, "
-            f"commitment={str(self.commitment[:12])}, "
-            f"data_chunk={str(self.data_chunk[:12])}, "
-            f"randomness={str(self.randomness[:12])}, "
-            f"merkle_proof={str(self.merkle_proof[:12])}, "
-            f"merkle_root={str(self.merkle_root[:12])})"
-            f"axon={self.axon.dict()}, "
-            f"dendrite={self.dendrite.dict()}"
-        )
+    SHORT_REPR_FIELDS: typing.ClassVar[typing.Set[str]] = {
+        "challenge_hash",
+        "challenge_index",
+        "chunk_size",
+        "g",
+        "h",
+        "curve",
+        "seed",
+        "commitment_hash",
+        "commitment_proof",
+        "commitment",
+        "data_chunk",
+        "randomness",
+        "merkle_proof",
+        "merkle_root",
+    }
 
 
-class Retrieve(bt.Synapse):
+class Retrieve(FileTaoSynapseMixin, bt.Synapse):
     # Where to find the data
     data_hash: str  # Miner storage lookup key
     seed: str  # New random seed to hash the data with
@@ -172,19 +212,16 @@ class Retrieve(bt.Synapse):
         allow_mutation=False,
     )
 
-    def __str__(self):
-        return (
-            f"Retrieve(data_hash={str(self.data_hash[:12])}, "
-            f"seed={str(self.seed[:12])}, "
-            f"data={str(self.data[:12])}, "
-            f"commitment_hash={str(self.commitment_hash[:12])}, "
-            f"commitment_proof={str(self.commitment_proof[:12])})"
-            f"axon={self.axon.dict()}, "
-            f"dendrite={self.dendrite.dict()}"
-        )
+    SHORT_REPR_FIELDS: typing.ClassVar[typing.Set[str]] = {
+        "data_hash",
+        "seed",
+        "data",
+        "commitment_hash",
+        "commitment_proof",
+    }
 
 
-class RetrieveUser(bt.Synapse):
+class RetrieveUser(FileTaoSynapseMixin, bt.Synapse):
     # Where to find the data
     data_hash: str  # Miner storage lookup key
 
@@ -198,3 +235,9 @@ class RetrieveUser(bt.Synapse):
         description="A list of required fields for the hash.",
         allow_mutation=False,
     )
+
+    SHORT_REPR_FIELDS: typing.ClassVar[typing.Set[str]] = {
+        "data_hash",
+        "encrypted_data",
+        "encryption_payload",
+    }
