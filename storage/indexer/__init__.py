@@ -5,7 +5,7 @@ import asyncio
 from time import sleep
 from substrateinterface import SubstrateInterface
 
-import indexer.endpoint as endpoint
+from . import endpoint as endpoint
 from .sqlite import query
 from .redis import (
     get_miner_statistics,
