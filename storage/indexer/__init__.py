@@ -36,8 +36,8 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS NetworkStatsTable (
             id INTEGER PRIMARY KEY,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            current_storage BIGINT NOT NULL,
-            network_capacity BIGINT NOT NULL,
+            current_storage DECIMAL(30, 0) NOT NULL,
+            network_capacity DECIMAL(30, 0) NOT NULL,
             total_successful_requests INT NOT NULL,
             redis_index_size_mb FLOAT NOT NULL,
             global_current_attempts INT NOT NULL,
