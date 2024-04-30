@@ -1,7 +1,7 @@
 import time
 import random
 import bittensor as bt
-from storage.api import store, retrieve
+from storage.api import store, retrieve, delete
 from storage.api import StoreUserAPI, RetrieveUserAPI, get_query_api_axons
 bt.trace()
 
@@ -57,12 +57,20 @@ async def test_storage_primitives():
     retrieve_handler = RetrieveUserAPI(wallet)
     rdata = await retrieve_handler(
         axons=axons,
-        # Arugmnts for the proper synapse
+        # Arguments for the proper synapse
         cid=cid,
         timeout=60,
     )
     print(rdata)
     assert raw_data == rdata
+
+
+async def test_delete():
+    cid = "bafkreiej3j74ywl3j2nsjxlrzj2jkyz2di7yahy4ilnfjjnkerrv76js6m"
+    hotkeys = ["5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH"]
+    wallet = bt.wallet()
+    subtensor = bt.subtensor("test")
+    await delete(cid, wallet, subtensor, hotkeys=hotkeys, netuid=22)
 
 
 if __name__ == "__main__":

@@ -74,15 +74,15 @@ COMMANDS = {
         },
     },
     "run": {
-         "name": "run",
-         "aliases": ["n", "run"],
-         "help": "Commands for running neurons in this subnetwork.",
-         "commands": {
-             "miner": RunMiner,
-             "validator": RunValidator,
-             "api": RunApi,
-         },
-     },
+        "name": "run",
+        "aliases": ["n", "run"],
+        "help": "Commands for running neurons in this subnetwork.",
+        "commands": {
+            "miner": RunMiner,
+            "validator": RunValidator,
+            "api": RunApi,
+        },
+    },
 }
 
 
@@ -232,9 +232,10 @@ class cli:
             print(f":cross_mark:[red]Unknown command: {self.config.command}[/red]")
             sys.exit()
 
-async def async_main(args):
-    await cli(args=args).run()
+async def async_main(config):
+    await cli(config=config).run()
 
 def filetao():
     args = sys.argv[1:]
-    asyncio.run(async_main(args=args))
+    config = cli.create_config(args)
+    asyncio.run(async_main(config=config))

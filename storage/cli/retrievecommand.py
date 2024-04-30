@@ -25,6 +25,7 @@ import argparse
 import storage
 from storage.validator.encryption import decrypt_data_with_private_key
 from storage.api.retrieve_api import retrieve
+from storage.shared.utils import list_all_hashes
 
 import bittensor
 
@@ -37,33 +38,6 @@ from .default_values import defaults
 # Create a console instance for CLI display.
 console = bittensor.__console__
 
-
-def list_all_hashes(hash_file):
-    try:
-        with open(os.path.expanduser(hash_file), "r") as file:
-            hashes = json.load(file)
-            return hashes
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-
-def get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
-    try:
-        wallet_names = next(os.walk(os.path.expanduser(path)))[1]
-        return [bittensor.wallet(path=path, name=name) for name in wallet_names]
-    except StopIteration:
-        # No wallet files found.
-        wallets = []
-    return wallets
-
-
-def get_hash_mapping(hash_file, filename):
-    try:
-        with open(os.path.expanduser(hash_file), "r") as file:
-            hashes = json.load(file)
-            return hashes.get(filename)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return None
 
 
 class RetrieveData:
@@ -129,6 +103,10 @@ class RetrieveData:
                     outpath = os.path.join(base_outpath, filename)
                     bittensor.logging.debug(f"set filename: {filename}")
                     hotkeys = hashes_dict[filename + "_hotkeys"]
+                else:
+                    hotkeys = []
+            else:
+                hotkeys = []
 
         except Exception as e:
             bittensor.logging.warning(
@@ -160,6 +138,7 @@ class RetrieveData:
                 sub,
                 netuid=cli.config.netuid,
                 hotkeys=hotkeys,
+                uids=cli.config.uids,
             )
 
             success = True
@@ -238,6 +217,12 @@ class RetrieveData:
             type=str,
             default=defaults.netuid,
             help="Network identifier for the Bittensor network.",
+        )
+        retrieve_parser.add_argument(
+            "--uids",
+            type=int,
+            nargs="+",
+            help="Validator API UID to ping directly if known apriori.",
         )
 
         bittensor.wallet.add_args(retrieve_parser)

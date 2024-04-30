@@ -34,8 +34,8 @@ from storage.validator.database import hotkey_at_capacity
 import bittensor as bt
 
 
-MIN_CHUNK_SIZE = 64 * 1024 * 1024  # 128 MB
-MAX_CHUNK_SIZE = 512 * 1024 * 1024  # 512 MB
+MIN_CHUNK_SIZE = 64 * 1024 * 1024   # 64 MB
+MAX_CHUNK_SIZE = 256 * 1024 * 1024  # 256 MB
 
 
 def chunk_data_generator(data, chunk_size):
@@ -180,7 +180,7 @@ def current_block_hash(self):
             return block_hash
     except Exception as e:
         bt.logging.warning(f"Failed to get block hash: {e}. Returning a random hash value.")
-    return int(str(random.randint(2 << 32, 2 << 64)))
+    return str(random.randint(2 << 32, 2 << 64))
 
 def get_block_seed(self):
     """

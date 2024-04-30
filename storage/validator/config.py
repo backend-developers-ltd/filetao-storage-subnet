@@ -317,13 +317,13 @@ def add_args(cls, parser):
         "--api.store_timeout",
         type=int,
         help="Store data query timeout.",
-        default=60,
+        default=600,
     )
     parser.add_argument(
         "--api.retrieve_timeout",
         type=int,
         help="Retrieve data query timeout.",
-        default=60,
+        default=600,
     )
     parser.add_argument(
         "--api.ping_timeout",
@@ -341,9 +341,9 @@ def add_args(cls, parser):
     parser.add_argument(
         "--api.whitelisted_hotkeys",
         nargs="+",
-        type=list,
+        type=str,
         help="List of whitelisted hotkeys.",
-        default=[],
+        default=["5HBATntUR9FUyvrGaewMht9pU66qUbcEL9VadXF69EQhKLaZ", "5GhV9ZEY76jovhYc5cuYXPS867aY5Dinuc2GkxFGwLd62hqw"],
     )
     parser.add_argument(
         "--api.open_access",
