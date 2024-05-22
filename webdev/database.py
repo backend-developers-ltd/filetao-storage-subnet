@@ -200,6 +200,8 @@ def get_user_metadata(username: str) -> Optional[str]:
 
 def get_hotkeys_by_cid(cid: str, username: str) -> List[str]:
     md = get_cid_metadata(cid, username)
+    if md is None:
+        return []
     return md.get("hotkeys", [])
 
 def get_metagraph(netuid: int = 21, network: str = "finney") -> bt.metagraph:

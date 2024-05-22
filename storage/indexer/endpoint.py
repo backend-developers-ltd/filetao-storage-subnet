@@ -4,11 +4,10 @@ import time
 import threading
 import uvicorn
 
-from typing import List, Dict, Union
+from typing import List, Union
 from time import time
 from pydantic import BaseModel
 from fastapi import FastAPI
-from redis import asyncio as aioredis
 
 from .sqlite import query
 
