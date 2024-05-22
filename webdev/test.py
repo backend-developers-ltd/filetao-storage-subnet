@@ -118,7 +118,7 @@ def get_hotkeys_by_cid(base_url, token: str, cid: str):
 def main():
     parser = argparse.ArgumentParser(description="Test FastAPI application")
     parser.add_argument('--host', type=str, default='localhost', help='Host where the FastAPI app is running')
-    parser.add_argument('--port', type=str, default='8001', help='Port on which the FastAPI app is running')
+    parser.add_argument('--port', type=str, default='5173', help='Port on which the FastAPI app is running')
     args = parser.parse_args()
 
     base_url = f"http://{args.host}:{args.port}"
