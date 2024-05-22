@@ -1065,10 +1065,7 @@ async def delete_file_from_database(file_hash: str, database: aioredis.Redis):
 
     bt.logging.trace(f"File {file_hash} deleted!")
 
-<<<<<<< HEAD
-=======
 
->>>>>>> main
 async def get_hash_keys(ss58_address: str, database: aioredis.Redis) -> List[str]:
     """
     Filter out the ttl: hashes from the hotkey hashes and return the list of keys.
