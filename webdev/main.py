@@ -3,6 +3,7 @@ import sys
 import json
 import base64
 import bittensor as bt
+import random
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, status
 from fastapi.responses import FileResponse
@@ -15,11 +16,11 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Dict
 from storage.validator.cid import generate_cid_string
 from storage.validator.encryption import encrypt_data, decrypt_data_with_private_key
-from storage.api import StoreUserAPI, RetrieveUserAPI, get_query_api_axons, store, retrieve
+from storage.api import StoreUserAPI, RetrieveUserAPI, get_query_api_axons, store, retrieve, delete
 from webdev.database import startup, get_database, get_user, create_user, get_server_wallet, get_metagraph
 from webdev.database import Token, TokenData, User, UserInDB, store_file_metadata, get_user_metadata
 from webdev.database import filename_exists, file_cid_exists, get_cid_by_filename, get_cid_metadata
-from webdev.database import get_user_stats, get_hotkeys_by_cid, delete_cid_metadata, rename_file
+from webdev.database import get_user_stats, get_hotkeys_by_cid, delete_cid_metadata, rename_file, update_user
 
 
 os.environ['ACCESS_TOKEN_EXPIRE_MINUTES']='15'
@@ -38,11 +39,7 @@ metagraph = get_metagraph()
 # Initialize FastAPI app
 app = FastAPI()
 
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
-if allowed_origins_env:
-    origins = allowed_origins_env.split(",")
-else:
-    raise RuntimeError("ALLOWED_ORIGINS environment variable not set")
+origins = ["https://tensor.storage", "http://localhost:5173"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -129,7 +126,9 @@ async def register_user(user_info: UserInfo):
         raise HTTPException(status_code=500, detail="Mnemonic not generated")
 
     user = UserInDB(
-        username = username, 
+        username = username,
+        user_max_storage = 5 * pow(1024, 3),
+        user_current_storage = 0, 
         hashed_password = hashed_password, 
         seed = seed, 
         wallet_name = name, 
@@ -158,6 +157,17 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
 
+    print("current user storage",current_user.user_current_storage)
+    print("file size", file.size)
+    print("user max", current_user.user_max_storage)
+    #check to see if storage limit has been reached
+    if (current_user.user_current_storage + file.size) > current_user.user_max_storage:
+        raise HTTPException(status_code=500, detail="Maximum storage capacity exceeded.")
+    
+    #increment user current storage
+    current_user.user_current_storage += file.size
+    update_user(current_user)
+
     # Access wallet_name and wallet_hotkey from current_user
     wallet_name = current_user.wallet_name
     wallet_hotkey = current_user.wallet_hotkey
@@ -165,6 +175,7 @@ async def create_upload_file(file: UploadFile = File(...), current_user: User = 
 
     # Fetch the axons of the available API nodes, or specify UIDs directly
     axons = await get_query_api_axons(wallet=server_wallet, metagraph=metagraph)
+    axons = random.choices(axons, k=min(3, len(axons)))
 
     # Check for existence before reuploading
     splt = file.filename.split(os.path.extsep)
@@ -218,7 +229,7 @@ async def create_upload_file(file: UploadFile = File(...), current_user: User = 
         incr=incr,
     )
 
-    return cid, hotkeys
+    return {"cid": cid, "hotkeys": hotkeys}
 
 # Multiple files upload endpoint
 @app.post("/uploadfiles/")
@@ -231,6 +242,7 @@ async def create_upload_files(files: List[UploadFile] = File(...), current_user:
 
     # Fetch the axons of the available API nodes, or specify UIDs directly
     axons = await get_query_api_axons(wallet=server_wallet, metagraph=metagraph)
+    axons = random.choices(axons, k=min(3, len(axons)))
 
     # TODO: This should be non-blocking. Either in separate threads or asyncio tasks we await.
     for file in files:
@@ -272,6 +284,7 @@ async def create_upload_files(files: List[UploadFile] = File(...), current_user:
             encoding="utf-8",
             timeout=60,
         )
+        # TODO: Let's not fail the whole request but log the error and continue with the other files.
         if not len(hotkeys):
             raise HTTPException(status_code=500, detail="No hotkeys returned from store_handler. Data not stored.")
 
@@ -284,11 +297,17 @@ async def create_upload_files(files: List[UploadFile] = File(...), current_user:
             hotkeys=hotkeys,
             payload=encryption_payload,
             ext=ext,
-            size=sys.getsizeof(encrypted_data),
+            size=file.size,
             incr=incr,
         )
 
-    return cid, hotkeys
+        #increment user current storage
+        current_user.user_current_storage += file.size
+
+    # Save updated user storage
+    update_user(current_user)
+
+    return {"cid": cid, "hotkeys": hotkeys}
 
 # File Retrieval Endpoint
 @app.get("/retrieve/{filename}")
@@ -329,7 +348,7 @@ async def retrieve_user_data(filename: str, current_user: User = Depends(get_cur
             cid=cid,
             timeout=60
         )
-        bt.logging.info(f"Response: {decrypted_data}")
+        #bt.logging.info(f"Response: {decrypted_data}")
         if decrypted_data != b"":
             success = True
 
@@ -351,6 +370,11 @@ async def delete_user_data(filename: str, current_user: User = Depends(get_curre
     splt = filename.split(os.path.extsep)
     filename_no_ext = splt[0]
 
+    # Access wallet_name and wallet_hotkey from current_user
+    wallet_name = current_user.wallet_name
+    wallet_hotkey = current_user.wallet_hotkey
+    user_wallet = bt.wallet(name = wallet_name, hotkey = "default")
+
     if not filename_exists(current_user.username, filename=filename_no_ext):
         raise HTTPException(
             status_code=404, detail=f"File {filename} does not exist. Please check the filename."
@@ -362,14 +386,8 @@ async def delete_user_data(filename: str, current_user: User = Depends(get_curre
             status_code=404, detail=f"File {filename} does not exist. Please check the filename."
         )
 
+    hotkeys = get_hotkeys_by_cid(cid, current_user.username)
     delete_cid_metadata(cid, current_user.username)
-
-    return True
-
-    """
-    # TODO: implement DELETE on validator side
-
-    hotkeys = metadata.get("hotkeys")
 
     metagraph = get_metagraph()
     uids = None
@@ -377,10 +395,11 @@ async def delete_user_data(filename: str, current_user: User = Depends(get_curre
         uids = [metagraph.hotkeys.index(hotkey) for hotkey in hotkeys]
 
     # Fetch the axons of the available API nodes, or specify UIDs directly
-    axons = await get_query_api_axons(wallet=server_wallet, metagraph=metagraph, uids=uids)
+    #axons = await get_query_api_axons(wallet=server_wallet, metagraph=metagraph, uids=uids)
 
-    delete(cid, axons, timeout=10)
-    """
+    #await delete(cid=cid, wallet=user_wallet, timeout=10)
+
+    return True
 
 # Perhaps this doesn't need username if we can parse it from the `User` object?
 @app.get("/user_data")

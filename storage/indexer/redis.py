@@ -5,6 +5,8 @@ import json
 
 from storage.shared.utils import get_redis_password
 
+MB_DIV = 1024 ** 2
+
 connection_pool = None
 
 def get_redis(config=None):
@@ -161,7 +163,11 @@ def get_hashes_for_hotkey(
         data_hash.decode("utf-8") for data_hash, metadata in all_data_hashes.items()
     ]
 
-def tier_statistics(by_tier: bool = False) -> Dict[str, Dict[str, int]]:
+def tier_statistics(
+    by_tier: bool = False,
+    stats: Dict[str, Dict[str, int]] = None,
+    registered_hotkeys: List[str] = None
+) -> Dict[str, Dict[str, int]]:
     tier_counts = {
         "Super Saiyan": 0,
         "Ruby": 0,
@@ -193,10 +199,14 @@ def tier_statistics(by_tier: bool = False) -> Dict[str, Dict[str, int]]:
         "Bronze": 0,
     }
 
-    for k,v in get_miner_statistics().items():
+    if stats is None:
+        stats = get_miner_statistics()
+
+    for k,v in stats.items():
         tier = v.get('tier', None)
         if tier:
             hotkey = k.split(":")[-1]
+            if hotkey not in registered_hotkeys: continue # Skip unregistered hotkey
             tier_counts[tier] += 1
             tier_capacity[tier] += int(v.get('storage_limit', 0))
             tier_usage[tier] += total_hotkey_storage(hotkey, False)
@@ -207,9 +217,15 @@ def tier_statistics(by_tier: bool = False) -> Dict[str, Dict[str, int]]:
     }
 
     type_dict = {
-        "counts": tier_counts, 
-        "capacity": tier_capacity, 
-        "usage": tier_usage,
+        "counts": tier_counts,
+        "capacity": {
+            k: v / MB_DIV
+            for k,v in tier_capacity.items()
+        },
+        "usage": {
+            k: v / MB_DIV
+            for k,v in tier_usage.items()
+        },
         "percent_usage": tier_percent_usage
     }
 
@@ -226,8 +242,9 @@ def tier_statistics(by_tier: bool = False) -> Dict[str, Dict[str, int]]:
 
     return type_dict
 
-def compute_by_tier_stats():
-    stats = get_miner_statistics()
+def compute_by_tier_stats(stats: Dict[str, Dict[str, int]] = None):
+    if stats is None:
+        stats = get_miner_statistics()
 
     tier_stats = {}
     for _, d in stats.items():
@@ -272,7 +289,7 @@ def compute_by_tier_stats():
 
     return tier_stats
 
-def get_network_capacity() -> int:
+def get_network_capacity(stats: Dict[str, Dict[str, int]], registered_hotkeys: List[str]) -> int:
     """
     Get the total storage capacity of the network in bytes.
     """

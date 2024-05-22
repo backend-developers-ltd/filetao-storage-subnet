@@ -640,13 +640,13 @@ Importance of Tier System:
 - **Fair Reward Distribution:** The reward factors are proportional to the miners' tier, ensuring a fair distribution of rewards based on performance.
 
 1. 🎇 **Super Saiyan Tier:** 
-   - **Storage Limit:** 1 Exabyte (EB)
+   - **Storage Limit:** 50 Petabytes (PB)
    - **Store Wilson Score:** 0.9
    - **Minimum Successes Required:** 15,000
    - **Reward Factor:** 1.0 (100% rewards)
 
 2. 🌹 **Ruby Tier**
-   - **Storage Limit:** 100 Petabytes (PB)
+   - **Storage Limit:** 20 Petabytes (PB)
    - **Store Wilson Score:** 0.85
    - **Minimum Successes Required:** 10,000
    - **Rewrd Factor:** 0.9 (90% rewards)
@@ -658,13 +658,13 @@ Importance of Tier System:
    - **Rewrd Factor:** 0.85 (85% rewards)
 
 4. 💠 **Diamond Tier:**
-   - **Storage Limit:** 1 Petabyte (PB)
+   - **Storage Limit:** 5 Petabytes (PB)
    - **Store Wilson Score:**  0.75
    - **Minimum Successes Required:** 6,000
    - **Reward Factor:** 0.8 (80% rewards)
 
 5. 🔗 **Platinum Tier**
-   - **Storage Limit:** 500 Terabytes (TB)
+   - **Storage Limit:** 1 Petabyte (PB)
    - **Store Wilson Score:** 0.65
    - **Minimum Successes Required:** 4,000
    - **Reward Factor:** 0.75 (75% rewards) 
@@ -693,12 +693,12 @@ Importance of Tier System:
 - Advancing to a higher tier takes time. In order to ascend to the first higher tier (Silver), it takes at least 1000 successful requests, whether they are challenge requests, store requests, or retry requests and must maintain the minimum Wilson Score for successes / attempts. 
 - Depending on how often a miner is queried, how many validators are operating at one given time, and primarily the performance of the miner, this can take several hours to several days. Assuming full 64 validator slots are occupied, this should take ~100 hours.
 
-As miners move up tiers, their responsibility increases proportionally. Thus, miners who move from Silver -> Gold are expected to be able to store up to 100 Terabytes (TB) of data, a 10x the storage cap for Silver. Similarly, it must maintain a minimum wilson score of 0.66 over it's lifetime, increasing the lower bound for expected performance and reliability. It also means that this miner will now receive a higher percentage of rewards for each successful query, going from 70% -> 80%. This does not mean that the miner may rest on its laurels, and may move right back down a tier (or more) if it does not meed the minimum requirements for Gold.
+As miners move up tiers, their responsibility increases proportionally. Thus, miners who move from Silver -> Gold are expected to be able to store up to 200 Terabytes (TB) of data, a 4x the storage cap for Silver. Similarly, it must maintain a minimum wilson score of 0.66 over it's lifetime, increasing the lower bound for expected performance and reliability. It also means that this miner will now receive a higher percentage of rewards for each successful query, going from 65% -> 70%. This does not mean that the miner may rest on its laurels, and may move right back down a tier (or more) if it does not meed the minimum requirements for Gold.
 
 Assuming perfect performance, that out of ~200 miner UIDs, each of which is queried roughly 34 times every 1000 rounds, namely a 3.4% chance every query round, one can expect to reach the next tier within 
 ```bash
-hours = total_successes / prob_of_query_per_round * time_per_round / 3600
-hours = 98 # roughly 4 days at perfect performance to next (Silver) tier (assuming no challenge failures)
+hours = total_successes / prob_of_query_per_round * time_per_round / 3600 / num_active_validators
+hours = 4.9 # roughly 5 hours at perfect performance to next (Silver) tier (assuming no challenge failures)
 ```
 
 #### Miner Advancement Program
@@ -1174,11 +1174,26 @@ You are free to use this provided docker convenience but may still run nodes on 
 
 ### Run filetao with docker
 
- - To run the defined docker compose services {filetao-miner, filetao-validator, redis} you must define environment variables in a `.env` file. To get you started `cp example.env .env` and update the `.env` file with your own values.
- - Once you have the needed env file, you can run the docker compose containers defined. If you have followed the suggested steps, you can use the following commands:
-     - To run all services (miner, validator, api) on a single host: `sudo docker compose up --build`
-     - To run a single or more services of choices `sudo docker compose up --build {filetao-miner,filetao-validator,filetao-api}` (remove the ones you don't want to run from the command)
+To run the suite of services (miner, validator, and redis), first run:
 
+```sh
+cp example.env .env
+```
+
+and populate the environment variables as appropriate. Ensure that each node has its own wallet, and is registered on SN21.
+
+To run the entire stack, use the following commands:
+
+```sh
+docker-compose build
+docker-compose up
+```
+
+To run only an individual service (e.g. miner and validator), use:
+
+```
+docker compose up --build {filetao-miner, filetao-validator}
+```
 
 ### Demo notebooks and examples
 

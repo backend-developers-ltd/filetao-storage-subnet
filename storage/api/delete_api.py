@@ -17,17 +17,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import json
 import torch
 import base64
 import random
+import asyncio
 import bittensor as bt
 from abc import ABC, abstractmethod
 from typing import Any, List, Union, Dict
 from storage.protocol import DeleteUser
 from storage.validator.cid import generate_cid_string
 from storage.validator.encryption import encrypt_data
-from storage.api.utils import get_query_api_axon
+from storage.api.utils import get_query_api_axons
+from storage.cli.default_values import defaults
+from storage.shared.utils import list_all_hashes
 
 
 class DeleteUserAPI(bt.SubnetsAPI):
@@ -35,9 +39,8 @@ class DeleteUserAPI(bt.SubnetsAPI):
         super().__init__(wallet)
         self.netuid = 21
 
-    def prepare_synapse(self, cid: str, encryption_payload: Dict[str, Any]) -> DeleteUser:
-        encryption_payload_json = json.dumps(encryption_payload)
-        synapse = DeleteUser(data_hash=cid, encryption_payload=encryption_payload_json)
+    def prepare_synapse(self, cid: str) -> DeleteUser:
+        synapse = DeleteUser(data_hash=cid)
         return synapse
 
     def process_responses(self, responses: List[Union["bt.Synapse", Any]]) -> Union[str, List[str]]:
@@ -52,3 +55,78 @@ class DeleteUserAPI(bt.SubnetsAPI):
             success = True
 
         return success
+
+
+async def delete(
+    cid: str,
+    wallet: "bt.wallet",
+    subtensor: "bt.subtensor" = None,
+    chain_endpoint: str = "finney",
+    netuid: int = 21,
+    timeout: int = 10,
+    uids: List[int] = None,
+    hotkeys: List[str] = None,
+    metadata_path: str = None,
+    name: str = None,
+    max_retries: int = 3,
+    backoff_factor: float = 2.0,
+) -> bytes:
+    """
+    Delete data from the FileTAO network.
+
+    Args:
+        cid (str): The hash of the data to retrieve.
+        wallet (bt.wallet): The wallet to use for the retrieval.
+        subtensor (bt.subtensor, optional): The subtensor network to use. Defaults to None.
+        chain_endpoint (str, optional): The chain endpoint to use. Defaults to "finney".
+        netuid (int, optional): The netuid to use. Defaults to 21.
+        timeout (int, optional): The timeout for the retrieval. Defaults to 60.
+        uids (List[int], optional): The uids to use for the retrieval. Defaults to None.
+        hotkeys (List[str], optional): The hotkeys to use for the retrieval. Defaults to None.
+        metadata_path (str, optional): The path to the hash metadata. Defaults to None.
+        name (str, optional): The name of the file to find metadata for. Defaults to None.
+    """
+    retry_count = 0
+    delay = 2
+
+    delete_handler = DeleteUserAPI(wallet)
+
+    subtensor = subtensor or bt.subtensor(chain_endpoint)
+    metagraph = subtensor.metagraph(netuid=netuid)
+
+    metadata_path = os.path.expanduser(metadata_path or defaults.hash_basepath)
+    hash_filepath = os.path.join(metadata_path, wallet.name + ".json")
+
+    if hotkeys is None:
+        hashes_dict = list_all_hashes(hash_filepath)
+        reverse_hashes_dict = {v: k for k, v in hashes_dict.items() if "hotkeys" not in k}
+        if cid in reverse_hashes_dict:
+            filename = reverse_hashes_dict[cid]
+            hotkeys = hashes_dict[filename + "_hotkeys"]
+
+    if uids is None and hotkeys is not None:
+        uids = [metagraph.hotkeys.index(hotkey) for hotkey in hotkeys]
+
+    axons = await get_query_api_axons(wallet=wallet, metagraph=metagraph, uids=uids)
+
+    while retry_count < max_retries:
+        try:
+
+            data = await delete_handler(
+                axons=axons,
+                cid=cid,
+                timeout=timeout,
+            )
+
+            if data != b"":
+                return data
+
+        except Exception as e:
+            print(f"Attempt {retry_count + 1} failed: {str(e)}")
+
+        await asyncio.sleep(delay)
+
+        delay *= backoff_factor
+        retry_count += 1
+
+    return data

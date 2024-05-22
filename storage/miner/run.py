@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import bittensor as bt
 from substrateinterface import SubstrateInterface
 from storage.shared.checks import check_registration
@@ -47,6 +48,11 @@ def run(self):
         KeyboardInterrupt: If the miner is stopped by a manual interruption.
         Exception: For unforeseen errors during the miner's operation, which are logged for diagnosis.
     """
+
+    data_directory = os.path.expanduser(self.config.database.directory)
+    if not os.path.exists(data_directory):
+        os.makedirs(data_directory)
+
     block_handler_substrate = SubstrateInterface(
         ss58_format=bt.__ss58_format__,
         use_remote_preset=True,

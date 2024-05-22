@@ -91,7 +91,11 @@ async def retrieve(
     backoff_factor: float = 2.0,
 ) -> bytes:
     """
+<<<<<<< HEAD
     Retrieve data from the subtensor network.
+=======
+    Retrieve data from the FileTAO network.
+>>>>>>> main
 
     Args:
         cid (str): The hash of the data to retrieve.
@@ -116,18 +120,31 @@ async def retrieve(
     metadata_path = os.path.expanduser(metadata_path or defaults.hash_basepath)
     hash_filepath = os.path.join(metadata_path, wallet.name + ".json")
 
+<<<<<<< HEAD
     hashes_dict = list_all_hashes(hash_filepath)
     reverse_hashes_dict = {v: k for k, v in hashes_dict.items() if "hotkeys" not in k}
     if cid in reverse_hashes_dict:
         filename = reverse_hashes_dict[cid]
         hotkeys = hashes_dict[filename + "_hotkeys"]
+=======
+    if hotkeys is None:
+        hashes_dict = list_all_hashes(hash_filepath)
+        reverse_hashes_dict = {v: k for k, v in hashes_dict.items() if "hotkeys" not in k}
+        if cid in reverse_hashes_dict:
+            filename = reverse_hashes_dict[cid]
+            hotkeys = hashes_dict[filename + "_hotkeys"]
+>>>>>>> main
 
     if uids is None and hotkeys is not None:
         uids = [metagraph.hotkeys.index(hotkey) for hotkey in hotkeys]
 
     axons = await get_query_api_axons(wallet=wallet, metagraph=metagraph, uids=uids)
 
+<<<<<<< HEAD
     while retry_count <= max_retries:
+=======
+    while retry_count < max_retries:
+>>>>>>> main
         try:
 
             data = await retrieve_handler(

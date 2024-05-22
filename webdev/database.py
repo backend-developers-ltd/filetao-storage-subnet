@@ -65,6 +65,8 @@ def get_server_wallet():
 # User Model and Database
 class User(BaseModel):
     username: str
+    user_max_storage: int
+    user_current_storage: int
 
 class UserInDB(User):
     hashed_password: str
@@ -99,8 +101,13 @@ def create_user(user: UserInDB):
     user_str = serialize_model(user)
     redis_db.set("user:" + username, user_str)
     redis_db.set("storage:" + username, 0)
-    redis_db.set("usercap:" + username, 1024 ** 4) # 1 GB init capacity
+    redis_db.set("usercap:" + username, 1024 ** 3 * 5) # 5 GB init capacity
     redis_db.incr("service:userCount")
+
+def update_user(user: UserInDB):
+    username = user.username
+    user_str = serialize_model(user)
+    redis_db.set("user:" + username, user_str)
 
 def get_server_stats():
     return {
@@ -111,8 +118,9 @@ def get_server_stats():
 
 def get_user_stats(username: str):
     return {
-        "filecount": int(redis_db.get("filecount:" + username)),
-        "storage": int(redis_db.get("storage:" + username)),
+        "filecount" : int(redis_db.get("filecount:" + username) or 0),
+        "storage" : int(redis_db.get("storage:" + username) or 0),
+        "usercap" : int(redis_db.get("usercap:" + username)),
     }
 
 def store_file_metadata(
@@ -194,7 +202,7 @@ def get_hotkeys_by_cid(cid: str, username: str) -> List[str]:
     md = get_cid_metadata(cid, username)
     return md.get("hotkeys", [])
 
-def get_metagraph(netuid: int = 22, network: str = "test") -> bt.metagraph:
+def get_metagraph(netuid: int = 21, network: str = "finney") -> bt.metagraph:
     metagraph_str = redis_db.get(f"metagraph:{netuid}")
     if metagraph_str:
         metagraph = deserialize_metagraph(metagraph_str.decode())

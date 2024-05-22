@@ -171,6 +171,10 @@ class neuron:
                 forward_fn=self.retrieve_user_data,
                 blacklist_fn=self.retrieve_blacklist,
                 priority_fn=self.retrieve_priority,
+            ).attach(
+                forward_fn=self.delete_user_data,
+                blacklist_fn=self.delete_blacklist,
+                priority_fn=self.delete_priority,
             )
 
             try:
@@ -178,11 +182,11 @@ class neuron:
                     netuid=self.config.netuid,
                     axon=self.axon,
                 )
-                self.axon.start()
-
             except Exception as e:
                 bt.logging.error(f"Failed to serve Axon: {e}")
                 pass
+
+            self.axon.start()
 
         except Exception as e:
             bt.logging.error(f"Failed to create Axon initialize: {e}")
@@ -288,7 +292,7 @@ class neuron:
         )
 
     async def store_priority(self, synapse: protocol.StoreUser) -> float:
-        if self.config.api.open_access:
+        if self.config.api.open_access or synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
             return 1.0
 
         caller_uid = self.metagraph.hotkeys.index(
@@ -372,7 +376,75 @@ class neuron:
         )
 
     async def retrieve_priority(self, synapse: protocol.RetrieveUser) -> float:
+        if self.config.api.open_access or synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
+            return 1.0
+
+        caller_uid = self.metagraph.hotkeys.index(
+            synapse.dendrite.hotkey
+        )  # Get the caller index.
+
+        priority = float(
+            self.metagraph.S[caller_uid]
+        )  # Return the stake as the priority.
+
+        bt.logging.trace(
+            f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority
+        )
+
+        return priority
+
+    async def delete_user_data(self, synapse: protocol.DeleteUser) -> protocol.DeleteUser:
+        """
+        Asynchronously handles the deletion of user data from the network based on a given hash.
+        It deletes the data and updates the synapse object with the deletion status.
+
+        Parameters:
+            synapse (protocol.DeleteUser): An instance of the DeleteUser protocol class containing
+                                        the hash of the data to be deleted.
+
+        Returns:
+            protocol.DeleteUser: The updated instance of the DeleteUser protocol class with the
+                                deletion status.
+
+        Note:
+            - The function is part of a larger protocol for data deletion in a distributed network.
+            - It utilizes the 'delete_broadband' method to perform the actual data deletion based
+            on the provided data hash.
+            - The method logs the deletion process and the resulting status for monitoring and debugging.
+        """
+        metadata = await get_ordered_metadata(synapse.data_hash, self.database)
+
+        if not metadata:
+            bt.logging.warning(f"Hash {synapse.data_hash} does not exist on the network.")
+            synapse.deleted = False
+            return synapse
+
+        bt.logging.trace(metadata)
+
+        await delete_file_from_database(synapse.data_hash, self.database)
+        synapse.deleted = True
+
+        return synapse
+
+    async def delete_blacklist(
+        self, synapse: protocol.DeleteUser
+    ) -> typing.Tuple[bool, str]:
+        # If debug mode, whitelist everything (NOT RECOMMENDED)
         if self.config.api.open_access:
+            return False, "Open access: WARNING all whitelisted"
+
+        # If explicitly whitelisted hotkey, allow.
+        if synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
+            return False, f"Hotkey {synapse.dendrite.hotkey} whitelisted."
+
+        # Otherwise, reject.
+        return (
+            True,
+            f"Hotkey {synapse.dendrite.hotkey} not whitelisted or in top n% stake.",
+        )
+
+    async def delete_priority(self, synapse: protocol.DeleteUser) -> float:
+        if self.config.api.open_access or synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
             return 1.0
 
         caller_uid = self.metagraph.hotkeys.index(

@@ -103,6 +103,10 @@ class RetrieveData:
                     outpath = os.path.join(base_outpath, filename)
                     bittensor.logging.debug(f"set filename: {filename}")
                     hotkeys = hashes_dict[filename + "_hotkeys"]
+                else:
+                    hotkeys = []
+            else:
+                hotkeys = []
 
         except Exception as e:
             bittensor.logging.warning(
@@ -134,6 +138,7 @@ class RetrieveData:
                 sub,
                 netuid=cli.config.netuid,
                 hotkeys=hotkeys,
+                uids=cli.config.uids,
             )
 
             success = True
@@ -212,6 +217,12 @@ class RetrieveData:
             type=str,
             default=defaults.netuid,
             help="Network identifier for the Bittensor network.",
+        )
+        retrieve_parser.add_argument(
+            "--uids",
+            type=int,
+            nargs="+",
+            help="Validator API UID to ping directly if known apriori.",
         )
 
         bittensor.wallet.add_args(retrieve_parser)

@@ -34,8 +34,8 @@ from storage.validator.database import hotkey_at_capacity
 import bittensor as bt
 
 
-MIN_CHUNK_SIZE = 64 * 1024 * 1024  # 128 MB
-MAX_CHUNK_SIZE = 512 * 1024 * 1024  # 512 MB
+MIN_CHUNK_SIZE = 64 * 1024 * 1024   # 64 MB
+MAX_CHUNK_SIZE = 256 * 1024 * 1024  # 256 MB
 
 
 def chunk_data_generator(data, chunk_size):

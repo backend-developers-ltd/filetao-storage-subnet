@@ -130,6 +130,7 @@ class StoreData:
                     encrypt=cli.config.encrypt,
                     encoding=cli.config.encoding,
                     timeout=cli.config.timeout,
+                    uid=cli.config.uid,
                 )
 
             if len(stored_hotkeys) > 0:
@@ -232,6 +233,11 @@ class StoreData:
             type=int,
             default=180,
             help="Timeout for the complete storage request on the Bittensor network.",
+        )
+        store_parser.add_argument(
+            "--uid",
+            type=int,
+            help="UID of validator API to ping directly",
         )
 
         bittensor.wallet.add_args(store_parser)

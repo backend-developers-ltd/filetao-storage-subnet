@@ -110,7 +110,7 @@ async def store(
 ):
 
     """
-    Stores data on the Bittensor network.
+    Stores data on the FileTAO network.
     
     Args:
         data (bytes): The data to store.
@@ -133,7 +133,7 @@ async def store(
     retry_count = 0
     delay = 2
 
-    while retry_count <= max_retries:
+    while retry_count < max_retries:
         try:
             store_handler = StoreUserAPI(wallet)
             subtensor = subtensor or bt.subtensor(chain_endpoint)
@@ -156,9 +156,6 @@ async def store(
             if cid != "" and hotkeys:
                 metadata_path = os.path.expanduser(metadata_path or defaults.hash_basepath)
                 hash_filepath = os.path.join(metadata_path, wallet.name + ".json")
-                if not os.path.exists(hash_filepath):
-                    os.makedirs(hash_filepath)
-
                 save_hash_mapping(hash_filepath, name or cid, cid, hotkeys)
                 return cid, hotkeys
         except Exception as e:

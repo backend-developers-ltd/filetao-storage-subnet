@@ -236,17 +236,10 @@ class RetrieveUser(FileTaoSynapseMixin, bt.Synapse):
         allow_mutation=False,
     )
 
-    SHORT_REPR_FIELDS: typing.ClassVar[typing.Set[str]] = {
-        "data_hash",
-        "encrypted_data",
-        "encryption_payload",
-    }
-
 
 class DeleteUser(bt.Synapse):
     # Where to find the data
     data_hash: str  # Miner storage lookup key
-    encryption_payload: str # encrypted json serialized bytestring of encryption params
 
     deleted: bool = False
 

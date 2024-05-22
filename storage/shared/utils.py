@@ -202,7 +202,7 @@ def get_hash_mapping(hash_file, filename):
 
 
 def save_hash_mapping(hash_file: str, filename: str, data_hash: str, hotkeys: List[str]):
-    base_dir = os.path.basename(hash_file)
+    base_dir = os.path.dirname(hash_file)
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
 
