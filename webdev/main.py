@@ -1,5 +1,6 @@
 import os
 import sys
+import jwt
 import json
 import base64
 import bittensor as bt
@@ -9,7 +10,6 @@ from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -98,7 +98,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
         return user
-    except JWTError:
+    except jwt.DecodeError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
 
 # User Registration Endpoint
