@@ -5,14 +5,9 @@
 ## What's Changed
 * Miner blacklist patch/security update by @ifrit98
 * Backend database update for cid not found by @ifrit98
-
+* 3.0.0 release by @ifrit98 in https://github.com/ifrit98/storage-subnet/pull/168
 
 **Full Changelog**: https://github.com/ifrit98/storage-subnet/compare/v2.1.0...v3.0.1
-
-
-## 3.0.1 / 2024-05-22
-
-
 
 
 ## 2.1.0 / 2024-03-08
