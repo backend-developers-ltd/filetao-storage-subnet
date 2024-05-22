@@ -137,6 +137,6 @@ class TestRetrieveUser:
             encryption_payload="encryption_payload",
         )
         assert str(synapse) == (
-            "RetrieveUser(data_hash='data_hash', encrypted_data='encrypted_da…', "
-            "encryption_payload='encryption_p…')"
+            "RetrieveUser(data_hash='data_hash', encrypted_data='encrypted_data', "
+            "encryption_payload='encryption_payload')"
         )
