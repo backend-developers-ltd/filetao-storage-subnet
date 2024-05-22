@@ -380,7 +380,7 @@ class miner:
             return False, "Hotkey recognized!"
 
         except Exception as e:
-                 return True, f"Unhandled exception checking blacklist_fn [{e}], assuming True"
+                 return True, f"Unhandled exception checking store blacklist_fn [{e}], assuming True"
 
     def store_priority_fn(self, synapse: storage.protocol.Store) -> float:
         """
@@ -444,30 +444,35 @@ class miner:
         except Exception as e:
             bt.logging.error(f"Error logging request: {e}")
 
-        caller = synapse.dendrite.hotkey
-        if caller in self.config.blacklist.blacklist_hotkeys:
-            return True, f"Hotkey {caller} in blacklist."
-        elif caller in self.config.blacklist.whitelist_hotkeys:
-            return False, f"Hotkey {caller} in whitelist."
+        try:
+            caller = synapse.dendrite.hotkey
+            if caller in self.config.blacklist.blacklist_hotkeys:
+                return True, f"Hotkey {caller} in blacklist."
+            elif caller in self.config.blacklist.whitelist_hotkeys:
+                return False, f"Hotkey {caller} in whitelist."
 
-        if caller not in self.rate_limiters:
-            self.rate_limiters[caller] = RateLimiter(
-                self.config.miner.max_requests_per_window,
-                self.config.miner.rate_limit_window,
-            )
+            if caller not in self.rate_limiters:
+                self.rate_limiters[caller] = RateLimiter(
+                    self.config.miner.max_requests_per_window,
+                    self.config.miner.rate_limit_window,
+                )
 
-        if not self.rate_limiters[caller].is_allowed(caller):
-            window = self.config.miner.max_requests_per_window
-            blocks = self.config.miner.rate_limit_window
-            reason = f"Caller {caller} rate limited. Exceeded {window} requests in {blocks} blocks."
-            return True, reason
+            if not self.rate_limiters[caller].is_allowed(caller):
+                window = self.config.miner.max_requests_per_window
+                blocks = self.config.miner.rate_limit_window
+                reason = f"Caller {caller} rate limited. Exceeded {window} requests in {blocks} blocks."
+                return True, reason
 
-        if caller not in self.metagraph.hotkeys:
-            bt.logging.trace(f"Blacklisting unrecognized hotkey {caller}")
-            return True, "Unrecognized hotkey"
+            if caller not in self.metagraph.hotkeys:
+                bt.logging.trace(f"Blacklisting unrecognized hotkey {caller}")
+                return True, "Unrecognized hotkey"
 
-        bt.logging.trace(f"Not Blacklisting recognized hotkey {caller}")
-        return False, "Hotkey recognized!"
+            bt.logging.trace(f"Not Blacklisting recognized hotkey {caller}")
+            return False, "Hotkey recognized!"
+
+        except Exception as e:
+                 return True, f"Unhandled exception checking challenge blacklist_fn [{e}], assuming True"
+
 
     def challenge_priority_fn(self, synapse: storage.protocol.Challenge) -> float:
         """
@@ -531,30 +536,34 @@ class miner:
         except Exception as e:
             bt.logging.error(f"Error logging request: {e}")
 
-        caller = synapse.dendrite.hotkey
-        if caller in self.config.blacklist.blacklist_hotkeys:
-            return True, f"Hotkey {caller} in blacklist."
-        elif caller in self.config.blacklist.whitelist_hotkeys:
-            return False, f"Hotkey {caller} in whitelist."
+        try:
+            caller = synapse.dendrite.hotkey
+            if caller in self.config.blacklist.blacklist_hotkeys:
+                return True, f"Hotkey {caller} in blacklist."
+            elif caller in self.config.blacklist.whitelist_hotkeys:
+                return False, f"Hotkey {caller} in whitelist."
 
-        if caller not in self.rate_limiters:
-            self.rate_limiters[caller] = RateLimiter(
-                self.config.miner.max_requests_per_window,
-                self.config.miner.rate_limit_window,
-            )
+            if caller not in self.rate_limiters:
+                self.rate_limiters[caller] = RateLimiter(
+                    self.config.miner.max_requests_per_window,
+                    self.config.miner.rate_limit_window,
+                )
 
-        if not self.rate_limiters[caller].is_allowed(caller):
-            window = self.config.miner.max_requests_per_window
-            blocks = self.config.miner.rate_limit_window
-            reason = f"Caller {caller} rate limited. Exceeded {window} requests in {blocks} blocks."
-            return True, reason
+            if not self.rate_limiters[caller].is_allowed(caller):
+                window = self.config.miner.max_requests_per_window
+                blocks = self.config.miner.rate_limit_window
+                reason = f"Caller {caller} rate limited. Exceeded {window} requests in {blocks} blocks."
+                return True, reason
 
-        if caller not in self.metagraph.hotkeys:
-            bt.logging.trace(f"Blacklisting unrecognized hotkey {caller}")
-            return True, "Unrecognized hotkey"
+            if caller not in self.metagraph.hotkeys:
+                bt.logging.trace(f"Blacklisting unrecognized hotkey {caller}")
+                return True, "Unrecognized hotkey"
 
-        bt.logging.trace(f"Not Blacklisting recognized hotkey {caller}")
-        return False, "Hotkey recognized!"
+            bt.logging.trace(f"Not Blacklisting recognized hotkey {caller}")
+            return False, "Hotkey recognized!"
+
+        except Exception as e:
+                 return True, f"Unhandled exception checking retrieve blacklist_fn [{e}], assuming True"
 
     def retrieve_priority_fn(self, synapse: storage.protocol.Retrieve) -> float:
         """

@@ -275,21 +275,26 @@ class neuron:
     ) -> typing.Tuple[bool, str]:
         # If debug mode, whitelist everything (NOT RECOMMENDED)
 
-        if self.config.api.open_access:
-            return False, "Open access: WARNING all whitelisted"
+        try:
 
-        if synapse.dendrite.hotkey in self.config.api.blacklisted_hotkeys:
-            return True, f"Hotkey {synapse.dendrite.hotkey} blacklisted."
+            if self.config.api.open_access:
+                return False, "Open access: WARNING all whitelisted"
 
-        # If explicitly whitelisted hotkey, allow.
-        if synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
-            return False, f"Hotkey {synapse.dendrite.hotkey} whitelisted."
+            if synapse.dendrite.hotkey in self.config.api.blacklisted_hotkeys:
+                return True, f"Hotkey {synapse.dendrite.hotkey} blacklisted."
 
-        # Otherwise, reject.
-        return (
-            True,
-            f"Hotkey {synapse.dendrite.hotkey} not whitelisted or in top n% stake.",
-        )
+            # If explicitly whitelisted hotkey, allow.
+            if synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
+                return False, f"Hotkey {synapse.dendrite.hotkey} whitelisted."
+
+            # Otherwise, reject.
+            return (
+                True,
+                f"Hotkey {synapse.dendrite.hotkey} not whitelisted or in top n% stake.",
+            )
+
+        except Exception as e:
+                 return True, f"Unhandled exception api store blacklist_fn [{e}], assuming True"
 
     async def store_priority(self, synapse: protocol.StoreUser) -> float:
         if self.config.api.open_access or synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
@@ -361,19 +366,23 @@ class neuron:
     async def retrieve_blacklist(
         self, synapse: protocol.RetrieveUser
     ) -> typing.Tuple[bool, str]:
-        # If debug mode, whitelist everything (NOT RECOMMENDED)
-        if self.config.api.open_access:
-            return False, "Open access: WARNING all whitelisted"
 
-        # If explicitly whitelisted hotkey, allow.
-        if synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
-            return False, f"Hotkey {synapse.dendrite.hotkey} whitelisted."
+        try:
+            if self.config.api.open_access:
+                return False, "Open access: WARNING all whitelisted"
 
-        # Otherwise, reject.
-        return (
-            True,
-            f"Hotkey {synapse.dendrite.hotkey} not whitelisted or in top n% stake.",
-        )
+            # If explicitly whitelisted hotkey, allow.
+            if synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
+                return False, f"Hotkey {synapse.dendrite.hotkey} whitelisted."
+
+            # Otherwise, reject.
+            return (
+                True,
+                f"Hotkey {synapse.dendrite.hotkey} not whitelisted or in top n% stake.",
+            )
+
+        except Exception as e:
+                 return True, f"Unhandled exception checking api retrieve blacklist_fn [{e}], assuming True"
 
     async def retrieve_priority(self, synapse: protocol.RetrieveUser) -> float:
         if self.config.api.open_access or synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
@@ -429,19 +438,23 @@ class neuron:
     async def delete_blacklist(
         self, synapse: protocol.DeleteUser
     ) -> typing.Tuple[bool, str]:
-        # If debug mode, whitelist everything (NOT RECOMMENDED)
-        if self.config.api.open_access:
-            return False, "Open access: WARNING all whitelisted"
 
-        # If explicitly whitelisted hotkey, allow.
-        if synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
-            return False, f"Hotkey {synapse.dendrite.hotkey} whitelisted."
+        try:
+            if self.config.api.open_access:
+                return False, "Open access: WARNING all whitelisted"
 
-        # Otherwise, reject.
-        return (
-            True,
-            f"Hotkey {synapse.dendrite.hotkey} not whitelisted or in top n% stake.",
-        )
+            # If explicitly whitelisted hotkey, allow.
+            if synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
+                return False, f"Hotkey {synapse.dendrite.hotkey} whitelisted."
+
+            # Otherwise, reject.
+            return (
+                True,
+                f"Hotkey {synapse.dendrite.hotkey} not whitelisted or in top n% stake.",
+            )
+
+        except Exception as e:
+                 return True, f"Unhandled exception checking api delete blacklist_fn [{e}], assuming True"
 
     async def delete_priority(self, synapse: protocol.DeleteUser) -> float:
         if self.config.api.open_access or synapse.dendrite.hotkey in self.config.api.whitelisted_hotkeys:
