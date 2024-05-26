@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.2 / 2024-05-26
+* Disallow farming previous slot incentive by non-serving axons by @ifrit98 in https://github.com/ifrit98/storage-subnet/pull/194
+
+**Full Changelog**: https://github.com/ifrit98/storage-subnet/compare/v3.0.1...v3.0.2
+
 ## 3.0.1 / 2024-05-22
 
 ## What's Changed
@@ -8,11 +13,6 @@
 * Migrate from jose to jwt (security) by @ifrit98 in https://github.com/ifrit98/storage-subnet/pull/192
 
 **Full Changelog**: https://github.com/ifrit98/storage-subnet/compare/v2.1.0...v3.0.1
-
-
-## 3.0.1 / 2024-05-22
-
-
 
 
 ## 2.1.0 / 2024-03-08
