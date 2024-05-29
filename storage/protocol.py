@@ -205,8 +205,9 @@ class Retrieve(FileTaoSynapseMixin, bt.Synapse):
     commitment_hash: typing.Optional[str] = None
     commitment_proof: typing.Optional[str] = None
 
+    # This should include `commitment_proof`, but it would require extensive changes to allow backwards compatibility.
     required_hash_fields: typing.List[str] = pydantic.Field(
-        ["data", "data_hash", "seed", "commtiment_proof", "commitment_hash"],
+        ["data", "data_hash", "seed", "commitment_hash"],
         title="Required Hash Fields",
         description="A list of required fields for the hash.",
         allow_mutation=False,
